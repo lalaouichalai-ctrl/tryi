@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+     <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Mon Espace - Laurentienne </title>
+    <style>
+        :root {
+            --bourso-blue: #004482;
+            --bourso-cyan: #00AEEF;
+            --bourso-pink: #E3007E;
+            --bourso-dark-blue: #002D54;
+        }
+        body { font-family: 'Open Sans', sans-serif; background-color: #F2F7F9; }
+        .pink-border { border-bottom: 3px solid var(--bourso-pink); }
+        .shadow-custom { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+        /* Styles spécifiques au Chat */
+        #chat-window {
+            transition: all 0.3s ease-in-out;
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #chat-window.active {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .chat-scrollbar::-webkit-scrollbar { width: 4px; }
+        .chat-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-gray-700">
+
+    <nav class="bg-white shadow-sm px-6 py-2 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-6">
+            <img src="https://www.societegenerale.com/sites/default/files/styles/rte_affichage_defaut_desktop/public/image/2023-04/logo-societe-generale.png?itok=9tsodGw3" class="h-8 cursor-pointer" onclick="window.location.reload()">
+            <div class="hidden lg:flex gap-6 text-sm font-medium">
+                <a href="dashboard.html" class="text-blue-500 pink-border pb-1">Mes comptes</a>
+                <a href="#" class="hover:text-pink-600 transition">Mes services</a>
+                <a href="#">Produits</a>
+                <a href="#">Parrainage</a>
+                <a href="#">Bourse & Actus</a>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-gray-500">
+            <i class="fa-solid fa-magnifying-glass bg-gray-100 p-2 rounded-full cursor-pointer"></i>
+            <span class="text-xs hidden md:block"><i class="fa-regular fa-comment-dots"></i> Aide & Contact</span>
+            <i class="fa-regular fa-bell cursor-pointer"></i>Deconnexion >>>
+            <div onclick="logout()" id="user-initials" class="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer" title="Déconnexion">--</div>
+        </div>
+    </nav>
+
+    <div class="max-w-[1280px] mx-auto grid grid-cols-12 gap-6 p-6">
+        
+        <div class="col-span-3 space-y-4">
+            <div class="bg-white p-6 rounded shadow-custom text-center">
+                <p class="text-xs text-gray-400 font-bold uppercase mb-2">Total de mes avoirs</p>
+                <div class="flex items-center justify-center gap-2">
+                    <span id="total-avoirs" class="text-3xl font-bold text-[#4ade80]">0,00 EUR</span>
+                    <i class="fa-regular fa-eye text-gray-300 cursor-pointer"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded shadow-custom overflow-hidden">
+                <div class="bg-pink-600 text-white p-3 flex justify-between items-center text-sm font-bold">
+                    Mes Dossiers en cours <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                <div class="p-4 text-blue-800 text-xs font-bold border-b">
+                    Ouverture de compte - SOCIETE GENERALE
+                </div>
+            </div>
+
+            <div class="bg-white rounded shadow-custom">
+                <div class="bg-cyan-500 text-white p-3 text-sm font-bold">Mes comptes bancaires</div>
+                <div class="p-4">
+                    <div class="flex justify-between text-xs font-bold text-cyan-600 mb-4">
+                        <span>Tous mes comptes</span>
+                        <span class="dynamic-solde">0,00 EUR</span>
+                    </div>
+                    <div class="border rounded p-3 bg-gray-50">
+                        <div class="flex justify-between text-[11px] font-bold text-blue-900">
+                            <span>SOCIETE GENERALE</span>
+                            <span class="text-green-500 dynamic-solde">0,00 EUR</span>
+                        </div>
+                        <p class="text-[12px] text-pink-600">Compte bloqué <img src="https://www.virages.com/Images/Categorie_A8/24504-500.jpg" height="15" width="20"></p>
+                        <div class="flex items-center gap-1 mt-2 text-[10px] text-gray-400 uppercase">
+                            <i class="fa-solid fa-briefcase"></i> <span id="user-full-name">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-2 border-dashed border-cyan-400 rounded p-4 flex items-center gap-3 text-cyan-600 font-bold text-xs cursor-pointer hover:bg-cyan-50 transition">
+                <i class="fa-solid fa-house-medical"></i> J'ajoute un compte externe
+            </div>
+
+            <div class="bg-white rounded shadow-custom overflow-hidden">
+                <div class="p-4 font-bold text-pink-600 border-b">Produits</div>
+                <div class="p-4 space-y-4 text-xs font-bold text-blue-900">
+                    <div class="flex justify-between cursor-pointer hover:text-cyan-500 transition">Compte et Carte Bancaire <i class="fa-solid fa-chevron-right text-cyan-500"></i></div>
+                    <div class="flex justify-between cursor-pointer hover:text-cyan-500 transition">Épargne <i class="fa-solid fa-chevron-right text-cyan-500"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-7 space-y-6">
+            <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded flex gap-4 relative">
+                <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-900 text-white text-[10px] px-3 py-1 rounded-full">Info service client</span>
+                <i class="fa-solid fa-circle-info text-blue-600 mt-1"></i>
+                <div class="text-sm">
+                    <p class="text-blue-900">Votre carte bancaire VISA ULTIM est en cours de fabrication.</p>
+                    <a href="#" class="text-blue-600 font-bold underline text-xs mt-2 block">En savoir plus</a>
+                </div>
+            </div>
+
+            <div class="text-sm font-bold mb-2 uppercase">SOCIETE GENERALE <span id="user-rib-short">CA001 ●●●●</span> <i class="fa-solid fa-ellipsis-h text-gray-300 ml-2 cursor-pointer"></i></div>
+            
+            <div class="bg-[#002D54] rounded-sm p-8 text-white relative shadow-lg">
+                <div class="grid grid-cols-2 text-center relative">
+                    <div class="border-r border-white/20">
+                        <p class="text-xs opacity-70 mb-2"><span id="date-du-jour"></span></p>
+
+<script>
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const aujourdhui = new Date().toLocaleDateString('fr-FR', options);
+  document.getElementById('date-du-jour').textContent = aujourdhui;
+</script></p>
+                        <p class="text-4xl font-bold text-green-400 flex items-center justify-center gap-2">
+                            <span id="main-solde">0,00 EUR</span> 
+                            <i class="fa-regular fa-eye text-sm text-white opacity-60 cursor-pointer"></i>
+                        </p>
+                        <p class="text-[10px] mt-4 underline opacity-80 font-normal cursor-pointer">Consulter l'analyse de mon budget</p>
+                    </div>
+                    <div>
+                        <p class="text-xs opacity-70 mb-2">Découvert autorisé</p>
+                        <p class="text-4xl font-bold">1 000,00 EUR</p>
+                        <p class="text-[10px] mt-4 underline opacity-80 font-normal cursor-pointer">Gérer mon découvert autorisé</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white border p-3 flex justify-between items-center text-xs font-bold text-blue-900 -mt-6 mx-4 rounded shadow-sm">
+                <div class="flex items-center gap-2"><i class="fa-regular fa-clock"></i> Mouvements à venir hors carte</div>
+                <span>0,00 EUR</span>
+            </div>
+            <div class="bg-gray-100 p-3 flex justify-between items-center text-xs font-bold text-blue-900 mx-4 rounded-b border-x border-b">
+                <span>SOLDE À VENIR</span>
+                <span class="dynamic-solde">0,00 EUR</span>
+            </div>
+
+            <div class="flex gap-6 border-b text-xs font-bold text-gray-500">
+                <div class="border-b-4 border-pink-600 pb-2 text-pink-600 cursor-pointer">Mes mouvements</div>
+                <div class="cursor-pointer hover:text-pink-600 pb-2 transition">Mes relevés</div>
+            </div>
+
+            <div id="transactions-list" class="bg-white rounded shadow-custom divide-y">
+                </div>
+        </div>
+
+        <div class="col-span-2 flex flex-col items-center gap-6 pt-4">
+            <a href="virement.html" class="flex flex-col items-center text-center group">
+                <div class="w-12 h-12 bg-cyan-500 text-white rounded-full flex items-center justify-center text-xl shadow-md group-hover:bg-cyan-600 transition">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                </div>
+                <p class="text-[10px] font-bold text-blue-800 mt-2">Mes virements & prélèvements</p>
+            </a>
+            <a href="carte.html" class="flex flex-col items-center text-center group">
+                <div class="w-12 h-12 bg-cyan-500 text-white rounded-full flex items-center justify-center text-xl shadow-md group-hover:bg-cyan-600 transition">
+                    <i class="fa-solid fa-credit-card"></i>
+                </div>
+                <p class="text-[10px] font-bold text-blue-800 mt-2">Ma carte bancaire</p>
+            </a>
+            <a href="rib.html" class="flex flex-col items-center text-center group">
+                <div class="w-12 h-12 bg-cyan-500 text-white rounded-full flex items-center justify-center text-xl shadow-md group-hover:bg-cyan-600 transition">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+                <p class="text-[10px] font-bold text-blue-800 mt-2">RIB</p>
+            </a>
+             <a href="historique.html" class="flex flex-col items-center text-center group">
+                <div class="w-12 h-12 bg-cyan-500 text-white rounded-full flex items-center justify-center text-xl shadow-md group-hover:bg-cyan-600 transition">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <p class="text-[10px] font-bold text-blue-800 mt-2">Historique</p>
+            </a>
+            <a href="ajouter-beneficiaire.html" class="flex flex-col items-center text-center group">
+                <div class="w-12 h-12 bg-cyan-500 text-white rounded-full flex items-center justify-center text-xl shadow-md group-hover:bg-cyan-600 transition">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <p class="text-[10px] font-bold text-blue-800 mt-2">Bénéficiaires</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="fixed bottom-10 right-10 flex flex-col items-end z-[100]">
+        <div id="chat-window" class="bg-white w-72 rounded-xl shadow-2xl border border-gray-100 mb-4 flex flex-col overflow-hidden">
+            <div class="bg-cyan-500 p-3 text-white flex justify-between items-center shadow-md">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-robot"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">Assistant Virtuel</span>
+                </div>
+                <button onclick="toggleChat()" class="hover:rotate-90 transition-all"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div id="chat-messages" class="h-64 overflow-y-auto p-4 space-y-3 chat-scrollbar bg-gray-50/50">
+                <div class="bg-white border p-2.5 rounded-lg rounded-tl-none shadow-sm text-[11px] text-gray-600">
+                    Bonjour ! 👋 Je suis votre assistant personnel. Comment puis-je vous éclairer ?
+                </div>
+            </div>
+
+            <div id="chat-options" class="p-3 border-t bg-white space-y-2">
+                <button onclick="sendResponse('bloque')" class="w-full text-left text-[10px] font-bold text-cyan-600 p-2 bg-cyan-50 rounded hover:bg-cyan-100 transition border border-cyan-100">
+                    ❓ Que faire quand mon compte est bloqué ?
+                </button>
+            </div>
+        </div>
+
+        <div onclick="toggleChat()" class="flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-xl border cursor-pointer hover:scale-105 transition group">
+            <span class="text-blue-500 text-xs font-bold italic group-hover:text-pink-600 transition">Une question ?</span>
+            <div class="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center text-white text-xl shadow-lg">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        // LOGIQUE DU CHAT (CONSERVÉE)
+        function toggleChat() {
+            document.getElementById('chat-window').classList.toggle('active');
+        }
+
+        function sendResponse(type) {
+            const chatBox = document.getElementById('chat-messages');
+            if(type === 'bloque') {
+                chatBox.innerHTML += `
+                    <div class="flex justify-end">
+                        <div class="bg-cyan-500 text-white p-2.5 rounded-lg rounded-tr-none shadow-sm text-[11px] max-w-[80%]">
+                            Que faire quand mon compte a un statut bloqué ?
+                        </div>
+                    </div>
+                `;
+                setTimeout(() => {
+                    chatBox.innerHTML += `
+                        <div class="bg-white border p-2.5 rounded-lg rounded-tl-none shadow-sm text-[11px] text-gray-600">
+                            <strong>Réponse :</strong> Contactez votre gestionnaire ! 📞
+                        </div>
+                    `;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }, 800);
+            }
+        }
+
+        // CHARGEMENT DES DONNÉES DEPUIS FIRESTORE
+        window.onload = async () => {
+            // checkAuth() récupère les données de Firestore en utilisant currentClientCode
+            const user = await checkAuth();
+            
+            if(!user) return; // checkAuth gère déjà la redirection si non trouvé
+
+            try {
+                // 1. Initiales et Nom Complet
+                document.getElementById('user-initials').innerText = getInitials(user.name);
+                document.getElementById('user-full-name').innerText = user.name;
+                
+                // 2. RIB partiel (Optionnel pour le design)
+                if(user.rib) {
+                    const parts = user.rib.split(' ');
+                    document.getElementById('user-rib-short').innerText = parts[0] + " ●●●●";
+                }
+
+                // 3. Formater et afficher les soldes
+                const soldeFormate = formatCurrency(user.solde);
+                
+                document.getElementById('total-avoirs').innerText = soldeFormate;
+                document.getElementById('main-solde').innerText = soldeFormate;
+                
+                // Met à jour tous les éléments qui partagent le même solde
+                document.querySelectorAll('.dynamic-solde').forEach(el => {
+                    el.innerText = soldeFormate;
+                });
+
+                // 4. Historique des transactions
+                const list = document.getElementById('transactions-list');
+                if(user.history && user.history.length > 0) {
+                    list.innerHTML = user.history.map(op => `
+                        <div class="p-4 flex justify-between items-center hover:bg-gray-50 transition border-b last:border-0">
+                            <div>
+                                <p class="text-[11px] font-bold text-blue-900 uppercase">${op.label}</p>
+                                <p class="text-[10px] text-gray-400">${op.date}</p>
+                            </div>
+                            <span class="font-bold text-sm ${op.amount < 0 ? 'text-gray-800' : 'text-green-500'}">
+                                ${formatCurrency(op.amount)}
+                            </span>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<p class="p-10 text-center text-gray-400 text-xs italic">Aucune opération récente.</p>';
+                }
+
+            } catch (error) {
+                console.error("Erreur d'affichage des données:", error);
+            }
+        };
+    </script>
+</body>
+</html>

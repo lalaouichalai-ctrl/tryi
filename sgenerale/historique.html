@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+     <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Historique - Laurentienne</title>
+    <style>
+        body { background-color: #F2F7F9; font-family: 'Open Sans', sans-serif; }
+        .pink-border { border-bottom: 3px solid #E3007E; }
+        .shadow-custom { box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th { text-transform: uppercase; font-size: 9px; color: #9ca3af; padding: 12px 8px; text-align: left; }
+        td { font-size: 11px; padding: 12px 8px; border-bottom: 1px solid #f3f4f6; }
+    </style>
+</head>
+<body class="text-gray-700">
+
+    <nav class="bg-white border-b px-6 py-2 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-8">
+            <img src="https://www.societegenerale.com/sites/default/files/styles/rte_affichage_defaut_desktop/public/image/2023-04/logo-societe-generale.png?itok=9tsodGw3" class="h-7 cursor-pointer" onclick="window.location.href='dashboard.html'">
+            <div class="flex gap-6 text-[13px] font-medium text-gray-600">
+                <a href="dashboard.html" class="text-blue-600 pink-border pb-2">Mes comptes</a>
+                <a>Mes services</a><a>Produits</a><a>Parrainage</a><a>Bourse & Actus</a>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-gray-400">
+            <i class="fa-solid fa-magnifying-glass bg-gray-100 p-2 rounded-full text-xs"></i>
+            <span class="text-[11px]"><i class="fa-regular fa-comment-dots mr-1"></i> Aide & Contact</span>
+            <div onclick="logout()" id="initials" class="w-8 h-8 bg-red-100 text-red-500 rounded-md flex items-center justify-center font-bold text-xs cursor-pointer uppercase">--</div>
+        </div>
+    </nav>
+
+    <div class="max-w-[1400px] mx-auto grid grid-cols-12 gap-6 p-6">
+        
+        <div class="col-span-3 space-y-4">
+            <div class="bg-white p-6 rounded shadow-custom text-center">
+                <p class="text-[10px] text-gray-400 font-bold uppercase mb-2">Total de mes avoirs</p>
+                <span id="total-avoirs" class="text-2xl font-bold text-green-500">0,00 €</span>
+            </div>
+            <div class="bg-white rounded shadow-custom overflow-hidden">
+                <div class="bg-[#00AEEF] text-white p-3 text-[11px] font-bold uppercase">Mes comptes bancaires</div>
+                <div class="p-4 bg-gray-50 border-b">
+                    <div class="flex justify-between text-[11px] font-bold text-blue-900 uppercase">
+                        <span>Compte Courant</span> <span class="text-green-500 side-solde">0,00 €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-7">
+            <div class="bg-white rounded shadow-custom overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-blue-900 uppercase">Détails des mouvements</h2>
+                    <div class="flex gap-4">
+                        <span class="text-[11px] text-pink-600 font-bold border-b-2 border-pink-600 pb-1">Mes mouvements</span>
+                        <span class="text-[11px] text-gray-400 font-bold">Mes relevés</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th>Date</th>
+                                <th>Libellé</th>
+                                <th>Nom</th>
+                                <th>IBAN</th>
+                                <th>Banque</th>
+                                <th>Motif</th>
+                                <th class="text-right">Montant</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hist-body">
+                            </tbody>
+                    </table>
+                </div>
+                <div id="no-data" class="p-10 text-center text-xs text-gray-400 italic hidden">
+                    Aucune opération enregistrée.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-2 flex flex-col items-center gap-8 pt-4">
+            <div onclick="window.location.href='virement.html'" class="flex flex-col items-center cursor-pointer group">
+                <div class="w-10 h-10 bg-[#00AEEF] text-white rounded-full flex items-center justify-center shadow-md"><i class="fa-solid fa-right-left"></i></div>
+                <span class="text-[9px] font-bold text-blue-800 mt-2 uppercase">Virements</span>
+            </div>
+            <div onclick="window.location.href='ajouter-beneficiaire.html'" class="flex flex-col items-center cursor-pointer group">
+                <div class="w-10 h-10 bg-[#00AEEF] text-white rounded-full flex items-center justify-center shadow-md"><i class="fa-solid fa-user-plus"></i></div>
+                <span class="text-[9px] font-bold text-blue-800 mt-2 uppercase text-center">Ajouter<br>Bénéficiaire</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        window.onload = async () => {
+            const user = await checkAuth();
+            if(!user) return;
+
+            // Update UI Commune
+            document.getElementById('total-avoirs').innerText = formatCurrency(user.solde);
+            document.querySelectorAll('.side-solde').forEach(el => el.innerText = formatCurrency(user.solde));
+            document.getElementById('initials').innerText = getInitials(user.name);
+
+            const body = document.getElementById('hist-body');
+            const history = user.history || [];
+
+            if(history.length === 0) {
+                document.getElementById('no-data').classList.remove('hidden');
+                return;
+            }
+
+            // Remplissage du tableau avec les 7 colonnes
+            body.innerHTML = history.map(h => `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="text-gray-400">${h.date || '-'}</td>
+                    <td class="font-bold text-blue-900 uppercase">${h.label || 'Virement'}</td>
+                    <td class="uppercase">${h.nom || '-'}</td>
+                    <td class="font-mono text-[10px] text-gray-400">${h.iban || '-'}</td>
+                    <td>${h.banque || '-'}</td>
+                    <td class="italic text-gray-500">${h.motif || '-'}</td>
+                    <td class="text-right font-bold ${h.amount < 0 ? 'text-gray-800' : 'text-green-500'}">
+                        ${formatCurrency(h.amount)}
+                    </td>
+                </tr>
+            `).join('');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+     <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Virement - Laurentienne</title>
+    <style>
+        body { background-color: #F2F7F9; font-family: 'Open Sans', sans-serif; }
+        .pink-border { border-bottom: 3px solid #E3007E; }
+        .shadow-custom { box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        select, input { outline: none; }
+    </style>
+</head>
+<body class="text-gray-700">
+    <nav class="bg-white border-b px-6 py-2 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-8">
+            <img src="https://accesportneuf.com/uploads/profil/_AUTOx250_fit_center-center_none/BANQUE-LAURENTIENNE-LOGO.png" class="h-7 cursor-pointer" onclick="window.location.href='dashboard.html'">
+            <div class="flex gap-6 text-[13px] font-medium text-gray-600">
+                <a href="dashboard.html" class="text-blue-600 pink-border pb-2">Mes comptes</a>
+                <a href="#">Mes services</a><a href="#">Produits</a><a href="#">Parrainage</a><a href="#">Bourse & Actus</a>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-gray-400">
+            <i class="fa-solid fa-magnifying-glass bg-gray-100 p-2 rounded-full text-xs"></i>
+            <span class="text-[11px]"><i class="fa-regular fa-comment-dots mr-1"></i> Aide & Contact</span>
+            <div onclick="logout()" id="initials" class="w-8 h-8 bg-red-100 text-red-500 rounded-md flex items-center justify-center font-bold text-xs cursor-pointer uppercase">--</div>
+        </div>
+    </nav>
+
+    <div class="max-w-[1400px] mx-auto grid grid-cols-12 gap-6 p-6">
+        <div class="col-span-3 space-y-4">
+            <div class="bg-white p-6 rounded shadow-custom text-center">
+                <p class="text-[10px] text-gray-400 font-bold uppercase mb-2">Total de mes avoirs</p>
+                <span id="total-avoirs" class="text-2xl font-bold text-green-500">0,00 €</span>
+            </div>
+            <div class="bg-white rounded shadow-custom overflow-hidden">
+                <div class="bg-[#00AEEF] text-white p-3 text-[11px] font-bold uppercase">Mes comptes bancaires</div>
+                <div class="p-4 bg-gray-50 border-b">
+                    <div class="flex justify-between text-[11px] font-bold text-blue-900 uppercase">
+                        <span>Compte Courant</span> <span class="text-green-500 side-solde">0,00 €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-7 space-y-4">
+            <div class="bg-[#002D54] p-8 rounded-lg text-white shadow-lg">
+                <h2 class="text-sm font-bold uppercase mb-6 tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-cyan-400"></i> Effectuer un virement
+                </h2>
+                <div class="space-y-4 text-gray-800">
+                    <div>
+                        <label class="text-[10px] text-white/60 uppercase font-bold ml-1">Bénéficiaire</label>
+                        <select id="ben-select" class="w-full p-3 mt-1 rounded border-none text-sm bg-white">
+                            <option value="">Choisir un bénéficiaire...</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] text-white/60 uppercase font-bold ml-1">Montant du virement</label>
+                        <input type="number" id="v-amt" placeholder="0.00 €" class="w-full p-3 mt-1 rounded border-none text-sm font-bold">
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-white/60 uppercase font-bold ml-1">Motif (apparaîtra sur le relevé)</label>
+                        <input type="text" id="v-msg" placeholder="Ex: Loyer, Cadeau, Remboursement..." class="w-full p-3 mt-1 rounded border-none text-sm">
+                    </div>
+
+                    <button onclick="executeVirement()" id="btn-valider" class="w-full bg-[#E3007E] text-white py-4 rounded font-bold hover:bg-pink-700 transition shadow-lg mt-4">
+                        VALIDER LE VIREMENT IMMÉDIAT
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-2 flex flex-col items-center gap-8 pt-4">
+            <div onclick="window.location.href='dashboard.html'" class="flex flex-col items-center cursor-pointer group">
+                <div class="w-10 h-10 bg-[#00AEEF] text-white rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition"><i class="fa-solid fa-house"></i></div>
+                <span class="text-[9px] font-bold text-blue-800 mt-2 uppercase">Accueil</span>
+            </div>
+			<div onclick="window.location.href='historique.html'" class="flex flex-col items-center cursor-pointer group">
+                <div class="w-10 h-10 bg-[#00AEEF] text-white rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                <span class="text-[9px] font-bold text-blue-800 mt-2 uppercase">Historique</span>
+            </div>
+            <div onclick="window.location.href='ajouter-beneficiaire.html'" class="flex flex-col items-center cursor-pointer group">
+                <div class="w-10 h-10 bg-pink-600 text-white rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition"><i class="fa-solid fa-user-plus"></i></div>
+                <span class="text-[9px] font-bold text-blue-800 mt-2 uppercase">Gérer bénéficiaires</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        let u = null;
+
+        window.onload = async () => {
+            u = await checkAuth(); 
+            if(!u) return;
+
+            // Mise à jour des montants
+            const formattedSolde = formatCurrency(u.solde);
+            document.getElementById('total-avoirs').innerText = formattedSolde;
+            document.querySelectorAll('.side-solde').forEach(el => el.innerText = formattedSolde);
+            document.getElementById('initials').innerText = getInitials(u.name);
+
+            // Chargement des bénéficiaires dans le Select
+            const sel = document.getElementById('ben-select');
+            const beneficiaires = u.beneficiaries || [];
+
+            if(beneficiaires.length === 0) {
+                let opt = document.createElement('option');
+                opt.innerText = "Aucun bénéficiaire enregistré";
+                opt.disabled = true;
+                sel.appendChild(opt);
+            } else {
+                beneficiaires.forEach(b => {
+                    let opt = document.createElement('option');
+                    opt.value = b.iban;
+                    // Utilisation de b.nom et b.prenom comme dans ton fichier d'ajout
+                    opt.innerText = `${b.nom} ${b.prenom}`; 
+                    sel.appendChild(opt);
+                });
+            }
+        };
+
+        async function executeVirement() {
+            const amt = parseFloat(document.getElementById('v-amt').value);
+            const select = document.getElementById('ben-select');
+            const motif = document.getElementById('v-msg').value || "Virement";
+            
+            // Validation
+            if(!select.value) return alert("Veuillez choisir un bénéficiaire");
+            if(!amt || amt <= 0) return alert("Veuillez saisir un montant valide");
+            if(amt > u.solde) return alert("Solde insuffisant pour cette opération");
+
+            const benName = select.options[select.selectedIndex].text;
+            const btn = document.getElementById('btn-valider');
+            
+            // Effet visuel de chargement
+            btn.disabled = true;
+            btn.innerText = "TRAITEMENT EN COURS...";
+            btn.classList.add('opacity-50');
+
+            const h = u.history || [];
+            const today = new Date().toLocaleDateString('fr-FR');
+
+            // Préparation de la nouvelle ligne d'historique
+            h.unshift({
+                date: today, 
+                label: "VIR VERS " + benName.toUpperCase() + " (" + motif.toUpperCase() + ")", 
+                amount: -Math.abs(amt)
+            });
+
+            try {
+                // Mise à jour Firebase
+                await db.collection("users").doc(u.clientCode).update({
+                    solde: u.solde - amt, 
+                    history: h
+                });
+
+                alert("Virement vers " + benName + " effectué avec succès !"); 
+                window.location.href="dashboard.html";
+            } catch(e) {
+                console.error(e);
+                alert("Erreur lors de la transaction. Veuillez réessayer.");
+                btn.disabled = false;
+                btn.innerText = "VALIDER LE VIREMENT";
+                btn.classList.remove('opacity-50');
+            }
+        }
+    </script>
+</body>
+</html>
